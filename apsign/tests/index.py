@@ -9,7 +9,7 @@ import alphalens
 import tushare as ts
 
 import apdset as ads
-import apfactor as aft
+import apsign as aps
 
 cache_path = os.path.expanduser('~/.cache/')
 
@@ -169,13 +169,13 @@ def main():
     #                                                                    groupby_labels=group_labels)
     # print(factor_data)
 
-    factor_data = aft.utils.get_clean_factor_and_forward_returns(factors,
+    factor_data = aps.utils.get_clean_factor_and_forward_returns(factors,
                                                                  prices=prices,
                                                                  quantiles=5,
                                                                  groupby=group,
                                                                  groupby_labels=group_labels)
 
-    aft.tears.create_event_returns_tear_sheet(factor_data, prices=prices, by_group=True)
+    aps.tears.create_event_returns_tear_sheet(factor_data, prices=prices, by_group=True)
     # alphalens.tears.create_event_returns_tear_sheet(factor_data, prices=prices)
 
     plt.savefig('/Users/polo/event_returns.png')
