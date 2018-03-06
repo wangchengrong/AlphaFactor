@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='posign',
-    version='0.01',
+    name='apsign',
+    version='0.0.1',
     packages=find_packages(),
     install_requires=[
         'numpy',
@@ -18,12 +18,12 @@ setup(
         'Programming Language :: Python :: 3.6'],
 
     # metadata for upload to PyPI
-    author='posignal',
+    author='posign',
     author_email='poloxue123@163.com',
-    description='The signal factor analyze',
+    description='The factor analyze',
     license='MIT',
-    keywords='signal factor quantile',
-    url='https://github.com/poloxue/posign',
+    keywords='factor quantile',
+    url='https://github.com/poloxue/apsign',
 
     package_data={
         '': ['*.txt']
