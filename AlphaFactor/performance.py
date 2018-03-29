@@ -107,30 +107,22 @@ def mean_information_coefficient(factor_data,
 
 def factor_returns(factor_data, long_short=True, group_neutral=False):
     """
-    Computes period wise returns for portfolio weighted by factor
-    values. Weights are computed by demeaning factors and dividing
-    by the sum of their absolute value (achieving gross leverage of 1)
+    按照因子值计算各资产配置权重并获取该因子收益序列。
 
     parameters
     ----------
     factor_data: pd.DataFrame -- MultiIndex
-        A MultiIndex DataFrame indexed by date (level 0) and asset (level 1),
-        containing the values for a single alpha factor, forward returns for
-        each period, the factor quantile/bin that factor value belongs to, and
-        (optionally) the group the asset belongs to.
+        以date和asset为索引的DataFrame，值包含因子值、不同周期前瞻收益、因子分位数、以及
+        资产分组。
     long_short: bool
-        Should this computation happen on a long short portfolio? if so, then
-        factor values will be demeaned across factor universe when factor
-        weighting the portfolio.
+        是否是多空交易组合
     group_neutral: bool
-        If True, compute group neutral returns: each group will weight
-        the same and returns demeaning will occur on the group level.
+        是否分组中性化处理，如果是，分组级别计算各组合收益
 
     Returns
     -------
     returns: pd.DataFrame
-        Period wise returns of dollar neutral portfolio weighted by factor
-        value.
+        不同周期的组合收益序列
     """
 
     def to_weights(group, is_long_short):

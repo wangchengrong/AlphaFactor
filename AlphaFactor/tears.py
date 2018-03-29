@@ -41,25 +41,17 @@ class GridFigure(object):
 @plotting.customize
 def create_returns_tear_sheet(factor_data, long_short=True, by_group=False):
     """
-    Create a tear sheet for returns analysis of a factor.
+    生成因子收益分析报告
 
     Parameters
     ----------
     factor_data: pd.DataFrame - MultiIndex
-        A MultiIndex DataFrame indexed by date (level 0) and asset (level 1),
-        containing the values for a single alpha factor, forward returns for
-        each period, the factor quantile/bin that factor value belongs to,
-        and (optionally) the group the asset belongs to.
+        以date和asset为索引的DataFrame，数据涉及因子、不同周期的前瞻收益、因
+        子分位和资产分组。
     long_short: bool
-        Should this computation happen on a long short portfolio? If so, then
-        factor values will be demeaned across the factor universe when factor
-        weighting the portfolio. Additionally, mean quantile returns will be
-        demeaned across the factor universe.
+        是否多空方式计算组合收益，如果是，根据因子距离均值决定多空的方向与权重。
     by_group: bool
-        If True, perform calculations, and display graphs separately for
-        each group.
-    save_fig: string
-        If not None, the path of the returns tears of factor.
+        是否生成分组收益收益报告
     """
 
     factor_returns = perf.factor_returns(factor_data, long_short=long_short)

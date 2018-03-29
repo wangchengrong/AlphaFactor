@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='apsign',
+    name='AlphaFactor',
     version='0.0.1',
     packages=find_packages(),
     install_requires=[
@@ -20,10 +20,10 @@ setup(
     # metadata for upload to PyPI
     author='posign',
     author_email='poloxue123@163.com',
-    description='The factor analyze',
+    description='multi factor analyze',
     license='MIT',
-    keywords='factor quantile',
-    url='https://github.com/poloxue/apsign',
+    keywords='Alpha Factor Quantile',
+    url='https://github.com/poloxue/AlphaFactor',
 
     package_data={
         '': ['*.txt']

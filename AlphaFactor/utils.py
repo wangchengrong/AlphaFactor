@@ -70,35 +70,25 @@ def quantize_factor(factor_data,
                     bins=None,
                     by_group=False):
     """
-    Computes period wise factor quantiles
+    计算每期因子值分位数
 
     Parameters
     ----------
     factor_data: pd.DataFrame - MultiIndex
-        A MultiIndex DataFrame indexed by data (level 0) and asset (level 1),
-        containing the values for a single alpha factor, forward returns for
-        each period, the factor quantile/bin that factor value belongs to, and
-        (optionally) the group the assets belongs to.
+        以date和asset为索引的DataFrame，数据包含因子值、不同周期未来收益
+        以及asset所属分组。
     quantiles: int or sequence[float]
-        Number of equal-sized quantile buckets to use in factor bucketing.
-        Alternately sequence of quantiles, allowing non-equal-sized buckets
-        e.g. [0., .10, .5, .90, 1.] or [.05, .5, .95]
-        Only one of 'quantiles' or 'bins' can be not-none
+        分位数设置，如果为int，表示分位均分，如为list，按给定的分位数分位，
+        如[0, 0.10, .50, 0.90, 1]
     bins: int or sequence[float]
-        Number of equal-with (valuewise) bins to use in factor bucketing.
-        Alternately sequence of bin edges allowing for non-uniform bin width
-        e.g. [-4, -2, -0.5, 0, 10]
-        Only one of 'quantiles' or 'bins' can be not-None
+        类似于quantiles，区别是按数值等分
     by_group: bool
-        If True, compute quantile buckets separately for each group.
-    no_raise: bool, optional
-        If True, no exceptions are thrown and the values for which the
-        exception would have been thrown are set to np.NaN
+        如为True，按组计算每个因子所属分位
 
     Returns
     -------
     factor_quantile: pd.Series
-        Factor quantiles indexed by date and asset.
+        以date和asset为索引的Series，值为因子分位数
     """
 
     def quantile_calc(x, _quantiles, _bins):
@@ -118,49 +108,51 @@ def quantize_factor(factor_data,
     return factor_quantile.dropna()
 
 
-def compute_forward_returns(factor_idx,
-                            prices,
+def compute_forward_returns(prices,
                             periods=(1, 5, 10),
                             filter_zscore=None):
     """
-    Finds the N period forward returns (as percent change) for each asset
-    provided.
+    计算每个资产的N周期未来收益率
 
     Parameters
     ----------
-    factor_idx: pd.DatetimeIndex
-        The factor datetimes for which we are computing the forward returns
     prices: pd.DataFrame
-        Pricing data to use in forward price calculation.
-        Assets as columns, dates as index. Pricing data must
-        span the factor analysis time period plus an additional buffer window
-        that is greater than the maximum number of expected periods
-        in the forward returns calculations.
+        价格数据，用于计算资产未来收益率，数据时间长度必须大于periods中的最大周期
     periods: sequence[int]
-        periods to compute forward returns on.
+        未来收益率的计算周期
     filter_zscore: int or float, optional
-        Set forward returns greater than X standard deviations
-        from the mean to nan. Set it to 'None' to avoid filtering.
-        Caution: this outlier filtering incorporates lookahead bias.
+        过滤异常收益，如果收益率减均值大于标准差的filter_zscore倍，则认为该值为异常值，
+        设置为NaN。
 
     Returns
     -------
     forward_returns: pd.DataFrame - MultiIndex
-        Forward returns in indexed by date and asset.
-        Separate column for each forward return window.
+        以date和asset为索引的DataFrame，值为未来收益率，每个列名为未来窗口大小，
+        如'1D'、'5D'、'10D'等等。
+
+        示例如下：
+        -----------------------------------------------
+                    |             | 1D  | 5D  | 10D
+        -----------------------------------------------
+            date    | asset
+        -----------------------------------------------
+                    | 000001.XSHE | 0.09|-0.01|-0.079
+                    -----------------------------------
+                    | 000002.XSHE | 0.02| 0.06| 0.020
+                    -----------------------------------
+        2014-01-01  | 600000.XSHG | 0.03| 0.09| 0.036
+                    -----------------------------------
+                    | 002415.XSHE |-0.02|-0.06|-0.029
+                    -----------------------------------
+                    | 600104.XSHG |-0.03| 0.05|-0.009
+        -----------------------------------------------
+
     """
 
-    factor_idx = factor_idx.intersection(prices.index)
-
     forward_returns = pd.DataFrame(index=pd.MultiIndex.from_product(
-        [factor_idx, prices.columns], names=['date', 'asset']))
-
-    custom_calendar = False
+        [prices.index, prices.columns], names=['date', 'asset']))
 
     for period in periods:
-        #
-        # build forward returns
-        #
         delta = prices.pct_change(period).shift(-period)
 
         if filter_zscore is not None:
@@ -169,6 +161,7 @@ def compute_forward_returns(factor_idx,
 
         forward_returns[period] = delta.stack()
 
+    print(forward_returns)
     forward_returns.index = forward_returns.index.rename(['date', 'asset'])
 
     return forward_returns
@@ -253,20 +246,16 @@ def get_clean_factor_and_forward_returns(factor,
                                          filter_zscore=20,
                                          groupby_labels=None):
     """
-    Formats the factor data, pricing data, and group mappings into a DataFrame
-    that contains aligned MultiIndex indices of timestamp and asset. The
-    returned data will be formatted to be suitable for Apfactor functions.
-
-    It is safe to skip a call to this function and still make use of Apfactor
-    functionalities as long as the factor data conforms the format returned
-    from get_clean_data_and_forward_returns and documented here.
+    将因子factor、价格prices、分组group等数据格式化，生成新的DataFrame，DataFrame多重索引
+    为date与asset。通过get_clean_factor_and_forward_returns整理后的数据即可使用AlphaFactor进行
+    分析。如数据已经符合AlphaFactor因子分参数要求，无需使用get_clean_factor_and_forward_return
+    亦可。
 
     Parameters
     ----------
     factor: pd.Series - MultiIndex
-        A MultiIndex Series indexed by a timestamp (level 0) and asset
-        (level 1), containing the values for a single alpha factor.
-        For example:
+        因子数据，以date(level)和asset(level1)为索引
+        示例如下:
             -----------------------------------
                 date    | asset       |
             -----------------------------------
@@ -281,24 +270,12 @@ def get_clean_factor_and_forward_returns(factor,
                         | 600104.XSHG | 2.7
             -----------------------------------
     prices: pd.DataFrame
-        A wide form Pandas DataFrame indexed by timestamp with assets
-        in the columns. It is important to pass the
-        correcting pricing data in depending on what time of period your
-        signal was generated so to void lookahead bias, or
-        delayed calculations. Pricing data must span the factor
-        analysis time period plus an additional buffer window
-        that is greater than the maximum number of the expected periods
-        in the forward returns calculations.
-        'Price' must contains at least an entry for each timestamp/asset
-        combination in 'factor'. This entry must be the asset price
-        at the time the asset factor value is computed and it will be
-        considered the buy price for that asset at that timestamp.
-        'Prices' must also contain entries for timestamps following each
-        timestamp/asset combination in 'factor', as many more timestamps
-        as the maximum value in 'periods'. The asset price after 'period'
-        timestamps will be considered the sell price for that asset when
-        computing 'period' forward returns.
-        For example:
+        价格数据，以date为索引，以assets为每列列名。确保价格数据的索引date无误，以
+        防止用到未来数据。价格需覆盖因子起止时间向后推迟max(periods)交易日的时间窗
+        口。举例说明，假设交易所无假日，如因子为20150101-20160101为数据，periods为
+        [1, 5, 10]，则价格数据需至少覆盖20150111-20160111。
+
+        示例如下：
             -----------------------------------------------------------------------------------
                         | 000001.XSHE | 000002.XSHE | 600000.XSHG | 002415.XSHE | 600104.XSHG
             -----------------------------------------------------------------------------------
@@ -311,51 +288,73 @@ def get_clean_factor_and_forward_returns(factor,
             2014-01-03  | 607.94      | 21.68         |  14.36    | 53.94       |  29.37
             -----------------------------------------------------------------------------------
     groupby: pd.Series - MultiIndex or dict
-        Either A MultiIndex Series indexed by date and asset,
-        containing the period wise group codes for each asset, or
-        a dict of asset to group mappings. If a dict is passed,
-        it is assumed that group mappings are unchanged for the
-        entire time period of the passed factor data.
+        分组数据，支持两种格式数据：以date和asset为多重索引的series，值为分组类型
+        或asset与分组类型的dict映射，dict表示分组情况在整个分析测试期间不做改变。
+
+        series分组示例：
+            -----------------------------------
+                date    | asset       |
+            -----------------------------------
+                        | 000001.XSHE | 000001
+                        -----------------------
+                        | 000002.XSHE | 000201
+                        -----------------------
+            2015-01-01  | 600000.XSHG | 000203
+                        -----------------------
+                        | 002415.XSHE | 000001
+                        -----------------------
+                        | 600104.XSHG | 000203
+            -----------------------------------
+            ...         | ...         | ...
+            -----------------------------------
+                        | 000001.XSHE | 000001
+                        -----------------------
+                        | 000002.XSHE | 000001
+                        -----------------------
+            2016-01-01  | 600000.XSHG | 000203
+                        -----------------------
+                        | 002415.XSHE | 000001
+                        -----------------------
+                        | 600104.XSHG | 000203
+            -----------------------------------
+        dict分组示例：
+            {
+                "000001.XSHE": '000001',
+                "000002.XSHE": '000201',
+                "600000.XSHE": '000203',
+                "002415.XSHE": '000001',
+                "600104.XSHE": '000203'
+            }
     by_group: bool
-        If True, compute quantile buckets separately for each group.
+        分组分析，如果True，对因子按组分析
     quantiles: int or sequence[float]
-        Number of equal-sized quantile buckets to use in factor bucketing.
-        Alternative sequence of quantiles, allowing non-equal-sized buckets
-        eg. [0., .10, .5, .9, 1.] or [.05, .5, .9]
-        Only one of 'quantiles' or 'bins' can be not-None
+        分位quantile设置，如果设置为int，表示分位均分，如果设置list，不必均分，按指定list
+        进行分位。
+        quantiles与bins不能全为None。
     bins: int or sequence[int]
-        Number of equal-with (value wise) bins to use in factor bucketing
-        Alternately sequence of bin edges allowing for non-uniform bin width
-        e.g. [-4, -2, -0.5, 0, 10]
-        Chooses the buckets to be evenly spaced according to the values
-        themselves. Useful when the factor contains discrete values.
+        数值bins切分，按数值进行切分，如果设置为int，表示数值均分，如果设置list，不均均分，
+        按指定list进行数值切分。
     periods: sequence[int]
-        periods to compute forward returns on.
+        用于因子与未来收益的周期，或理解为调仓周期，默认为[1, 5, 10]，即分析因子对未来1日
+        收益、5日收益、10日收益的影响。
     filter_zscore: int or float, optional
-        Sets forward returns greater than X standard deviations
-        from the the mean to nan. Set it to 'None' to avoid filtering.
-        Caution: this outlier filtering incorporates lookahead bias.
+        如果未来收益大于指定的标准偏差，设置未来收益为nan.
     groupby_labels: dict
-        A dictionary keyed by group code with values corresponding
-        to the display name for each group.
+        分组标签信息，例如
+        {
+            '000001': '消费',
+            '000002': '能源'
+            ...
+        }
 
     Returns
     -------
     merged_data: pd.DataFrame - MultiIndex
-        A MultiIndex Series indexed by date (level 0) and asset (level 1),
-        containing the values for a single alpha factor, forward returns for
-        each period, the factor quantile/bin that factor value belongs to, and
-        (optionally) the group the assets belongs to.
-        - forward returns column names follow  the format accepted by
-          pd.Timedelta (e.g. '1D', '30m', '3h15m', '1D1h', etc)
-        - 'date' index freq property (merged_data.index.level[0].freq) will be
-          set to Calendar day or business day (pandas DateOffset) depending on
-          what was inferred from the input data. This is currently used only in
-          cumulative returns computation but it can be later set to any
-          pd.DateOffset (e.g. US trading calendar) to increase the accuracy
-          of the results
-        For example:
-            -------------------------------------------------------------------
+        DataFrame结构数据，符合AlphaFactor分析函数参数要求，以date(level 0)和asset(level 1)
+        为索引。其包含因子值、不同未来周期的收益、分组信息以及因子所属分位信息。
+
+        示例如下:
+           -------------------------------------------------------------------
                       |             | 1D  | 5D  | 10D  |factor|group|factor_quantile
            -------------------------------------------------------------------
                date   | asset       |     |     |      |      |     |
@@ -382,10 +381,8 @@ def get_clean_factor_and_forward_returns(factor,
 
     factor = factor.copy()
     factor.index = factor.index.rename(['date', 'asset'])
-    factor_dateindex = factor.index.get_level_values('date').unique()
 
-    merged_data = compute_forward_returns(factor_dateindex, prices, periods,
-                                          filter_zscore)
+    merged_data = compute_forward_returns(prices, periods, filter_zscore)
     merged_data['factor'] = factor
 
     if groupby is not None:
@@ -596,3 +593,88 @@ def std_conversation(period_std):
 
 def get_forward_returns_columns(columns):
     return columns[columns.astype('str').str.isdigit()]
+
+
+def winsorize(factor_data, win_type='norm_dist', n_draw=5, p_value=0.05):
+    """
+    因子去极值方法
+
+    Parameters
+    ----------
+    factor_data: dict or pd.Series
+        原始因子数据
+    win_type: str
+        去极值方法，有以下两种方式
+        norm_dist   正态分布去极值，大于3标准差的值被视为异常
+        quantile    分位数去极值
+    n_draw: int
+        正态分布去极值迭代次数，默认为5次，只有当win_type为'norm_dist'时有效
+    p_value: float
+        分位数去极值的指定分位数，默认为0.05，只有当win_type为'quantile'时有效
+
+    Returns
+    -------
+    winsorize_factor_data: pd.Series
+        去极值后的因子数据
+    """
+
+    factor_data = factor_data.copy()
+    factor_data = factor_data if isinstance(factor_data, pd.Series) else pd.Series(factor_data)
+
+    if win_type == 'norm_dist':
+        for i in range(n_draw):
+            mean = factor_data.mean()
+            std = factor_data.std(ddof=1)
+            factor_data[factor_data - mean <= - 3 * std] = mean - 3 * std
+            factor_data[factor_data - mean >= 3 * std] = mean + 3 * std
+    elif win_type == 'quantile':
+        up = 1 - p_value / 2
+        down = p_value / 2
+
+        down_value = factor_data.quantile(down)
+        factor_data[factor_data < down_value] = down_value
+
+        up_value = factor_data.quantile(up)
+        factor_data[factor_data > up_value] = up_value
+
+    return factor_data
+
+
+def standardize(factor_data):
+    """
+    因子标准化函数
+
+    Parameters
+    ----------
+    factor_data: pd.Series or dict
+        原始因子数据
+
+    Returns
+    -------
+    standardize_factor_data: pd.Series
+        标准化后的数据
+    """
+
+    factor_data = factor_data.copy()
+    factor_data = factor_data if isinstance(factor_data, pd.Series) else pd.Series(factor_data)
+
+    return (factor_data - factor_data.mean()) / factor_data.std(ddof=1)
+
+
+def neutral(factor_data):
+    """
+    因子中性化函数
+
+    Parameters
+    ----------
+    factor_data: pd.Series or dict
+        原始因子数据
+
+    Returns
+    -------
+    neutral_factor_data: pd.Series
+        中性化后的因子
+    """
+    factor_data = factor_data.copy()
+
+    return factor_data

@@ -1,19 +1,16 @@
-=======
+=====
 API介绍
-=======
+=====
 
 
-本篇将介绍apfactor常用API。
+本篇将介绍AlphaFactor常用API。
 
-.. note::
-
-    演示数据来源于apdset，这是个人整理的一些易于使用的演示数据python库(暂不完整)。如获取平安银行某个时间的每日收益 returns = apdset.get_stock_returns('0000001', start='2013-01-01', end='2017-12-31')，某个时段的价格信息 prices = apdset.get_stock_prices('000001', start='2013-01-01', end='2017-12-31')。
 
 工具API
-----
+-----
 
-utils.gets
-------------
+utils.get_clean_factor_and_forward_returns
+------------------------------------------
 
 累计收益率或价格转化为每日收益率
 

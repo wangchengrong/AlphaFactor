@@ -9,7 +9,7 @@ import alphalens
 import tushare as ts
 
 import apdset as ads
-import apsign as aps
+import AlphaFactor as aps
 
 cache_path = os.path.expanduser('~/.cache/')
 
