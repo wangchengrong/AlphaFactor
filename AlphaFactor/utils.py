@@ -161,7 +161,6 @@ def compute_forward_returns(prices,
 
         forward_returns[period] = delta.stack()
 
-    print(forward_returns)
     forward_returns.index = forward_returns.index.rename(['date', 'asset'])
 
     return forward_returns
@@ -595,7 +594,7 @@ def get_forward_returns_columns(columns):
     return columns[columns.astype('str').str.isdigit()]
 
 
-def winsorize(factor_data, win_type='norm_dist', n_draw=5, p_value=0.05):
+def winsorize(factor_data, win_type='norm_dist', n_draw=5, p_value=0.05, n_mda=20):
     """
     因子去极值方法
 
@@ -607,10 +606,13 @@ def winsorize(factor_data, win_type='norm_dist', n_draw=5, p_value=0.05):
         去极值方法，有以下两种方式
         norm_dist   正态分布去极值，大于3标准差的值被视为异常
         quantile    分位数去极值
+
     n_draw: int
         正态分布去极值迭代次数，默认为5次，只有当win_type为'norm_dist'时有效
     p_value: float
         分位数去极值的指定分位数，默认为0.05，只有当win_type为'quantile'时有效
+    n_mda: int
+        中位数去极值指定公式中n，中位数差值倍数，只有当win_type为'median'时有效
 
     Returns
     -------
@@ -636,6 +638,12 @@ def winsorize(factor_data, win_type='norm_dist', n_draw=5, p_value=0.05):
 
         up_value = factor_data.quantile(up)
         factor_data[factor_data > up_value] = up_value
+    elif win_type == 'median':
+        median = factor_data.median()
+        mda = (factor_data - median).abs().median()
+
+        factor_data[factor_data < median - n_mda * mda] = median - n_mda * mda
+        factor_data[factor_data > median + n_mda * mda] = median + n_mda * mda
 
     return factor_data
 
@@ -661,7 +669,7 @@ def standardize(factor_data):
     return (factor_data - factor_data.mean()) / factor_data.std(ddof=1)
 
 
-def neutral(factor_data):
+def neutral(factor_data, industries):
     """
     因子中性化函数
 
@@ -669,6 +677,8 @@ def neutral(factor_data):
     ----------
     factor_data: pd.Series or dict
         原始因子数据
+    industries: pd.Series, dict
+        行业中性化所需分组信息
 
     Returns
     -------
@@ -676,5 +686,19 @@ def neutral(factor_data):
         中性化后的因子
     """
     factor_data = factor_data.copy()
+
+    if isinstance(industries, dict):
+        diff = set(factor_data.index) - set(industries)
+        if len(diff) > 0:
+            raise KeyError('Assets {} not in industries mapping'.format(list(diff)))
+
+        ss = pd.Series(industries)
+        industries = pd.Series(index=factor_data.index,
+                               data=ss[factor_data.index])
+
+    def deamean(group):
+        return group - group.mean()
+
+    factor_data = factor_data.groupby(industries).apply(deamean)
 
     return factor_data
