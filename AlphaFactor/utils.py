@@ -1,7 +1,44 @@
 import numpy as np
 import pandas as pd
 
+import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+
 from IPython.display import display
+
+
+class GridFigure(object):
+
+    def __init__(self, rows, cols):
+        self.rows = rows
+        self.cols = cols
+        self.fig = plt.figure(figsize=(14, rows * 7))
+        self.gs = gridspec.GridSpec(rows, cols, wspace=0.4, hspace=0.3)
+        self.curr_row = 0
+        self.curr_col = 0
+
+    def next_row(self):
+        if self.curr_col != 0:
+            self.curr_row += 1
+            self.curr_col = 0
+
+        subplt = plt.subplot(self.gs[self.curr_row, :])
+        self.curr_row += 1
+
+        return subplt
+
+    def next_cell(self):
+        if self.curr_col >= self.cols:
+            self.curr_row += 1
+            self.curr_col = 0
+
+        subplt = plt.subplot(self.gs[self.curr_row, self.curr_col])
+        self.curr_col += 1
+
+        return subplt
+
+    def show(self):
+        plt.show()
 
 
 class NonMatchingTimezoneError(Exception):
@@ -590,8 +627,31 @@ def std_conversation(period_std):
     return period_std / np.sqrt(period_len)
 
 
+def forward_returns(prices, period):
+    """
+    计算日期对应未来周期的收益
+
+    Parameters
+    ----------
+    prices: pd.Series or pd.DataFrame
+        价格序列
+    period: int
+        未来周期
+
+    Returns
+    -------
+    forward_returns: pd.Series or pd.DataFrame
+        指定周期的未来收益
+    """
+    return prices.pct_change(period).shift(-period)
+
+
 def get_forward_returns_columns(columns):
     return columns[columns.astype('str').str.isdigit()]
+
+
+def get_forward_not_returns_columns(columns):
+    return columns[~columns.astype('str').str.isdigit()]
 
 
 def winsorize(factor_data, win_type='norm_dist', n_draw=5, p_value=0.05, n_mda=20):

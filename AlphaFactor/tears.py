@@ -1,41 +1,8 @@
 import pandas as pd
-import matplotlib.gridspec as gridspec
-import matplotlib.pyplot as plt
 
 from . import plotting
 from . import performance as perf
 from . import utils
-
-
-class GridFigure(object):
-
-    def __init__(self, rows, cols):
-        self.rows = rows
-        self.cols = cols
-        self.fig = plt.figure(figsize=(14, rows * 7))
-        self.gs = gridspec.GridSpec(rows, cols, wspace=0.4, hspace=0.3)
-        self.curr_row = 0
-        self.curr_col = 0
-
-    def next_row(self):
-        if self.curr_col != 0:
-            self.curr_row += 1
-            self.curr_col = 0
-
-        subplt = plt.subplot(self.gs[self.curr_row, :])
-        self.curr_row += 1
-
-        return subplt
-
-    def next_cell(self):
-        if self.curr_col >= self.cols:
-            self.curr_row += 1
-            self.curr_col = 0
-
-        subplt = plt.subplot(self.gs[self.curr_row, self.curr_col])
-        self.curr_col += 1
-
-        return subplt
 
 
 @plotting.customize
@@ -79,7 +46,7 @@ def create_returns_tear_sheet(factor_data, long_short=True, by_group=False):
     fr_cols = len(factor_returns.columns)
 
     vertical_sections = 2 + fr_cols * 3
-    gf = GridFigure(rows=vertical_sections, cols=1)
+    gf = utils.GridFigure(rows=vertical_sections, cols=1)
 
     plotting.plot_returns_table(alpha_beta,
                                 mean_compret_quantile,
@@ -118,7 +85,7 @@ def create_returns_tear_sheet(factor_data, long_short=True, by_group=False):
 
         num_groups = len(mean_return_quantile_group.index.get_level_values('group').unique())
         vertical_sections = 1 + (((num_groups - 1) // 2) + 1)
-        gf = GridFigure(rows=vertical_sections, cols=2)
+        gf = utils.GridFigure(rows=vertical_sections, cols=2)
 
         ax_quantile_returns_bar_by_group = [gf.next_cell()
                                             for _ in range(num_groups)]
@@ -134,7 +101,7 @@ def create_information_tear_sheet(factor_data,
                                   group_adjust=False,
                                   by_group=False):
     """
-    Creates a tear sheet for imformation analysis of a factor.
+    Creates a tear sheet for information analysis of a factor.
 
     Parameters
     ----------
@@ -158,7 +125,7 @@ def create_information_tear_sheet(factor_data,
     fr_cols = len(ic.columns)
     rows_when_wide = (((fr_cols - 1) // columns_wide) + 1)
     vertical_sections = fr_cols + 3 * rows_when_wide + 2 * fr_cols
-    gf = GridFigure(rows=vertical_sections, cols=columns_wide)
+    gf = utils.GridFigure(rows=vertical_sections, cols=columns_wide)
 
     ax_ic_ts = [gf.next_row() for _ in range(fr_cols)]
     plotting.plot_ic_ts(ic, ax=ax_ic_ts)
@@ -214,7 +181,7 @@ def create_turnover_tear_sheet(factor_data):
     columns_wide = 1
     rows_when_wide = (((fr_cols - 1) // 1) + 1)
     vertical_sections = fr_cols + 3 * rows_when_wide + 2 * fr_cols
-    gf = GridFigure(rows=vertical_sections, cols=columns_wide)
+    gf = utils.GridFigure(rows=vertical_sections, cols=columns_wide)
 
     for period in sorted(quantile_turnover.keys()):
         plotting.plot_top_bottom_quantile_turnover(quantile_turnover[period],
@@ -269,7 +236,7 @@ def create_event_returns_tear_sheet(factor_data,
 
     vertical_secitions = 1 + (((num_quantiles - 1) // 2) + 1)
     cols = 2 if num_quantiles != 1 else 1
-    gf = GridFigure(rows=vertical_secitions, cols=cols)
+    gf = utils.GridFigure(rows=vertical_secitions, cols=cols)
 
     plotting.plot_quantile_average_cumulative_return(avg_cumulative_returns,
                                                      by_quantile=False,
@@ -286,7 +253,7 @@ def create_event_returns_tear_sheet(factor_data,
     if by_group:
         num_groups = len(factor_data['group'].unique())
         vertical_secitions = ((num_groups - 1) // 2) + 1
-        gf = GridFigure(rows=vertical_secitions, cols=2)
+        gf = utils.GridFigure(rows=vertical_secitions, cols=2)
 
         for group, g_factor in factor_data.groupby('group'):
             avg_cumulative_returns = \
@@ -329,4 +296,4 @@ def create_event_study_tear_sheet(factor_data, prices, avgretplot=(5, 15)):
 
     plotting.plot_quantile_statistics_table(factor_data)
 
-    gf = GridFigure(rows=1, cols=1)
+    gf = utils.GridFigure(rows=1, cols=1)

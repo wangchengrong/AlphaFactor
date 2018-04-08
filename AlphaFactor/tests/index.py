@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import alphalens
 import tushare as ts
 
-import apdset as ads
+import FinData
 import AlphaFactor as aps
 
 cache_path = os.path.expanduser('~/.cache/')
@@ -21,7 +21,7 @@ def calendar(start, end, is_open=False):
     if os.path.exists(cache_file):
         return pd.read_csv(cache_file, index_col=0, squeeze=True, names=['date'])
 
-    trade_dates = ads.calendar(start=start, end=end, is_open=is_open)
+    trade_dates = FinData.calendar(start=start, end=end, is_open=is_open)
     trade_dates.to_csv(cache_file)
 
     return trade_dates

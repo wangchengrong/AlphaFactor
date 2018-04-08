@@ -1,17 +1,17 @@
 import matplotlib.pyplot as plt
 
 import AlphaFactor
-import apdset
+import FinData
 
 
 def main():
     factor_name = 'revs60'
     cache_factor_price_group_file = 'cache_factor_price_{}.pkl'.format(factor_name)
-    data = apdset.cache.load_df(cache_factor_price_group_file)
+    data = FinData.cache.load_df(cache_factor_price_group_file)
     if data is None:
-        data = apdset.gen_factor_price_group('hs300', factor_name,
+        data = FinData.gen_factor_price_group('hs300', factor_name,
                                              start='2016-01-01', end='2018-01-01')
-        apdset.cache.store_df(data, cache_factor_price_group_file)
+        FinData.cache.store_df(data, cache_factor_price_group_file)
 
     factors, prices, groups, group_labels = data
 

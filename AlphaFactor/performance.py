@@ -107,7 +107,7 @@ def mean_information_coefficient(factor_data,
 
 def factor_returns(factor_data, long_short=True, group_neutral=False):
     """
-    按照因子值计算各资产配置权重并获取该因子收益序列。
+    按照因子值加权计算各资产配置权重并获取该因子收益序列。
 
     parameters
     ----------
@@ -130,7 +130,8 @@ def factor_returns(factor_data, long_short=True, group_neutral=False):
             demeaned_vals = group - group.mean()
             return demeaned_vals / demeaned_vals.abs().sum()
         else:
-            return group / group.abs().sum()
+            demined_vals = group - group.min()
+            return demined_vals / demined_vals.abs().sum()
 
     grouper = [factor_data.index.get_level_values('date')]
     if group_neutral:
@@ -206,29 +207,26 @@ def mean_return_by_quantile(factor_data,
                             by_group=False,
                             demeaned=True):
     """
-    Computes mean returns for factor quantiles across
-    provided forward returns columns.
+    计算因子的分位收益
 
     Parameters
     ----------
     factor_data: pd.DataFrame - MultiIndex
-        A MultiIndex DataFrame indexed by date (level 0) and asset (level 1),
-        containing the values for a single alpha factor, forward returns for
-        each period, the factor quantile/bin that factor value belongs to, and
-        (optionally) the group the asset belongs to.
+        以date和asset为索引的DataFrame，数据涉及因子、不同周期的未来收益、因
+        子分位和资产分组。
     by_date: bool
-        If True, compute quantile bucket returns separately for each date.
+        如果为True，根据日期计算不同日期每个分位的收益
     by_group: bool
-        If True, compute quantile bucket returns seperately for each group.
+        如果为True，根据分组计算不同分组每个分位的收益
     demeaned: bool
-        Compute demeaned mean returns (long short portfolio)
+        计算收益是否中心化处理
 
     Returns
     -------
     mean_ret: pd.DataFrame
-        Mean period wise returns by specified factor quantile.
+        每个周期的各个分位的平均收益
     std_error_ret: pd.DataFrame
-        Standard error of returns by specified quantile.
+        指定分位收益的标准误差
     """
 
     if demeaned:
@@ -406,3 +404,30 @@ def average_cumulative_return_by_quantile(quantized_factor,
 
     return quantized_factor.groupby(quantized_factor)\
         .apply(average_cumulative_return)
+
+
+def mean_returns_by_ff(factor_data):
+    """
+    采用ff打分排序，排名靠前一组减去排名最后一组作为计算因子收益
+
+    Parameters
+    ----------
+    factor_data: pd.DataFrame - MultiIndex
+        以date和asset为索引的DataFrame，数据涉及因子、不同周期的未来收益、因
+        子分位和资产分组。
+
+    Returns
+    -------
+    """
+    min_quantile_factor_data = factor_data[
+        factor_data['factor_quantile'].min() == factor_data['factor_quantile']].copy()
+    max_quantile_factor_data = factor_data[
+        factor_data['factor_quantile'].max() == factor_data['factor_quantile']].copy()
+
+    min_mean_ret = min_quantile_factor_data.groupby(level='date')[
+        utils.get_forward_returns_columns(factor_data.columns)].agg('mean')
+
+    max_mean_ret = max_quantile_factor_data.groupby(level='date')[
+        utils.get_forward_returns_columns(factor_data.columns)].agg('mean')
+
+    return min_mean_ret, max_mean_ret, max_mean_ret - min_mean_ret

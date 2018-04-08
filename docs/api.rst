@@ -33,7 +33,7 @@ utils.get_clean_factor_and_forward_returns
 
 ::
 
-    In [3]: aprical.calc_returns(prices)
+    In [3]: FinCal.calc_returns(prices)
     Out[3]: array([ 0.        ,  0.01929792, -0.01839163, ..., -0.02708638,
                    -0.00601956,  0.00681302])
 
@@ -61,7 +61,7 @@ annual_return
 
 ::
 
-    In [2]: aprical.annual_return(returns)
+    In [2]: FinCal.annual_return(returns)
     Out[2]: 0.19661396487274785
 
 
@@ -88,7 +88,7 @@ cum_returns
 
 ::
 
-    In [4]: aprical.cum_returns(returns)
+    In [4]: FinCal.cum_returns(returns)
     Out[4]: date
             2013-01-04    0.000000
             2013-01-07    0.019298
@@ -132,12 +132,12 @@ alpha
 
 ::
 
-    In [5]: aprical.alpha(returns, bm_returns)
+    In [5]: FinCal.alpha(returns, bm_returns)
     Out[5]: 0.10712917133035547
 
 .. note::
 
-    bm_returns为基准收益序列，可通过 apdset.get_stock_returns('hs300', start='2013-01-01', end='2017-12-31') 获取。
+    bm_returns为基准收益序列，可通过 FinData.get_stock_returns('hs300', start='2013-01-01', end='2017-12-31') 获取。
 
 
 beta
@@ -167,7 +167,7 @@ beta
 
 ::
 
-    In [6]: aprical.beta(returns, bm_returns)
+    In [6]: FinCal.beta(returns, bm_returns)
     Out[6]: 1.097511291861336
 
 
@@ -201,7 +201,7 @@ sharpe_ratio
 
 ::
 
-    In [7]: aprical.sharpe_ratio(returns)
+    In [7]: FinCal.sharpe_ratio(returns)
     Out[7]: 0.6809710556604535
 
 
@@ -226,7 +226,7 @@ max_drawdown
 
 ::
 
-    In [8]: aprical.max_drawdown(returns)
+    In [8]: FinCal.max_drawdown(returns)
     Out[8]: -0.4528814528814529
 
 最大回撤为0.4528814528814529。
@@ -261,7 +261,7 @@ omega ratio是2002年提出的，新的业绩衡量指标，考虑了收益的�
 
 ::
 
-    In [9]: aprical.omega_ratio(returns)
+    In [9]: FinCal.omega_ratio(returns)
     Out[9]: 1.1443133991591286
 
 omega ratio为1.1443133991591286，大于1
@@ -292,7 +292,7 @@ Calmar比率(Calmar Ratio) 描述收益和最大回撤之间的关系。计算�
 
 ::
 
-    In [10]: aprical.calmar_ratio(returns)
+    In [10]: FinCal.calmar_ratio(returns)
     Out[10]: 0.4341400241096071
 
 sortino_ratio
@@ -328,7 +328,7 @@ sortino_ratio
 
 ::
 
-    In [11]: aprical.sortino_ratio(returns)
+    In [11]: FinCal.sortino_ratio(returns)
     Out[11]: 1.0574420445426946
 
 downside_risk
@@ -344,4 +344,4 @@ downside_risk
 
 :示例:
 
-.. _annual_returns: http://aprical.readthedocs.io/en/latest/api.html#annual-return
+.. _annual_returns: http://FinCal.readthedocs.io/en/latest/api.html#annual-return

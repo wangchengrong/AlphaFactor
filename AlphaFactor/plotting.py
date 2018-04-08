@@ -63,14 +63,15 @@ def plot_information_table(ic_data):
     ic_summary_table = pd.DataFrame()
     ic_summary_table['IC Mean'] = ic_data.mean()
     ic_summary_table['IC Std.'] = ic_data.std()
+    ic_summary_table["Risk-Adjusted IC"] = ic_data.mean() / ic_data.std()
     t_stat, p_value = stats.ttest_1samp(ic_data, 0)
     ic_summary_table['t-stats(IC)'] = t_stat
     ic_summary_table['p-value(IC)'] = p_value
     ic_summary_table['IC Skew'] = stats.skew(ic_data)
-    ic_summary_table['Ann. IR'] = (ic_data.mean() / ic_data.std()) * np.sqrt(244)
+    ic_summary_table["IC Kurtosis"] = stats.kurtosis(ic_data)
 
     print('Information Analysis')
-    utils.print_table(ic_summary_table.apply(lambda x: x.round(3).T))
+    utils.print_table(ic_summary_table.apply(lambda x: x.round(3)).T)
 
 
 def plot_quantile_statistics_table(factor_data):
@@ -92,7 +93,7 @@ def plot_ic_ts(ic, ax=None):
     ----------
     ic: pd.DataFrame
         DataFrame indexed by date, with IC for each forward return.
-    ax: matplotlib.Axes
+    ax: iterable[matplotlib.Axes]
         Axes upon which to plot.
 
     Returns
@@ -291,7 +292,7 @@ def plot_quantile_returns_bar(mean_ret_by_q,
 
         (mean_ret_by_q.multiply(DECIMAL_TO_BPS)).plot(kind='bar',
                                                       title='Mean Return By Factor Quantile', ax=ax)
-        ax.set(xlabel='', ylabel='Mean Returns By Factor Quantile', ylim=(ymin, ymax))
+        ax.set(xlabel='', ylabel='Mean Returns (bps)', ylim=(ymin, ymax))
 
         return ax
 
@@ -345,7 +346,7 @@ def plot_quantile_returns_violin(return_by_q,
                    cut=0,
                    inner='quartile',
                    ax=ax)
-    ax.set(xlabel='', ylabel='Return (bps',
+    ax.set(xlabel='', ylabel='Return (bps)',
            title='Period Wise Return By Factor Quantile',
            ylim=(ymin, ymax))
 
@@ -638,24 +639,18 @@ def plot_cumulative_returns_by_quantile(quantile_returns,
                                         overlap=True,
                                         ax=None):
     """
-    Plots the cumulative returns of various factor quantiles.
+    绘制不同因子分位的累计收益图
 
     Parameters
     ----------
     quantile_returns: pd.DataFrame
-        Cumulative returns by factor quantile.
+        分位收益
     period: int, optional
-        Period over which the daily returns are calculated
+        未来周期
     overlap: int, optional
-        Specify if subsequent returns overlaps.
-        If 'overlap' is True and 'period' N is greater than 1, the cumulative
-        returns plot is computed building and averaging the cumulative returns
-        of N interleaved portfolios (started at subsequent periods 1,2,3,...,N)
-        each one rebalancing every N periods. This results in trading the
-        factor at every value/signal computed by the factor and also the
-        cumulative returns don't dependent on a specific starting date.
+        是否是多日叠加的收益
     ax: matplotlib.Axes, optional
-        Axes upon which to plot.
+        绘图坐标轴
 
     Returns
     -------
@@ -675,10 +670,54 @@ def plot_cumulative_returns_by_quantile(quantile_returns,
     cum_ret.plot(lw=2, ax=ax, cmap=cm.RdYlGn_r)
     ax.legend()
     ymin, ymax = cum_ret.min().min(), cum_ret.max().max()
-    ax.set(ylabel='Log Cumulative Returns',
+    ax.set(ylabel='Cumulative Returns',
            title='Cumulative Return by Quantile ({} Period Forward Return)'.format(period),
-           xlabel='',
-           yscale='symlog',
+           xlabel='Date',
+           yticks=np.linspace(ymin, ymax, 5),
+           ylim=(ymin, ymax))
+
+    ax.yaxis.set_major_formatter(ScalarFormatter())
+    ax.axhline(1.0, linestyle='-', color='black', lw=1)
+
+    return ax
+
+
+def plot_cumulative_returns_by_ff(ff_returns,
+                                  period=1,
+                                  overlap=True,
+                                  ax=None):
+    """
+    绘制采用ff打分法计算因子回报的累计收益
+
+    Parameters
+    ----------
+    ff_returns: pd.Series
+        采用的ff打分的日频不同未来周期因子收益
+    period: int
+        未来周期
+    overlap: bool
+        是否为多日叠加的收益
+    ax: matplotlib.Axes
+        绘图坐标
+
+    Returns
+    -------
+    ax: matplotlib.Axes
+    """
+
+    if ax is None:
+        f, ax = plt.subplots(1, 1, figsize=(18, 6))
+
+    overlapping_period = period if overlap else 1
+    cum_ret = utils.cumulative_returns(ff_returns, overlapping_period)
+
+    cum_ret = cum_ret[::-1]
+
+    cum_ret.plot(lw=2, ax=ax)
+    ymin, ymax = cum_ret.min(), cum_ret.max()
+    ax.set(ylabel='Cumulative Returns',
+           title='Cumulative Return by Fama-French ({} Period Forward Return)'.format(period),
+           xlabel='Date',
            yticks=np.linspace(ymin, ymax, 5),
            ylim=(ymin, ymax))
 
