@@ -400,7 +400,32 @@ def plot_top_bottom_quantile_turnover(factor_data, gf=None):
     -------
     gf: utils.GridFigure
     """
-    pass
+    turnover_periods = utils.get_forward_returns_columns(factor_data.columns)
+    quantile_factor = factor_data['factor_quantile']
+
+    quantile_turnover = \
+        {p: pd.concat([perf.quantile_turnover(quantile_factor, q, p)
+                       for q in range(1, int(quantile_factor.max()) + 1)],
+                      axis=1) for p in turnover_periods}
+
+    turnover_table = pd.DataFrame()
+    for period in sorted(quantile_turnover.keys()):
+        for quantile, p_data in quantile_turnover[period].iteritems():
+            turnover_table.loc['Quantile {} Mean Turnover'.format(quantile),
+                               '{}'.format(period)] = p_data.mean()
+
+    utils.print_table(turnover_table)
+
+    fro_cols = len(quantile_turnover)
+    if gf is None:
+        gf = utils.GridFigure(rows=fro_cols, cols=1)
+
+    for period in sorted(quantile_turnover.keys()):
+        plotting.plot_top_bottom_quantile_turnover(quantile_turnover[period],
+                                                   period=period,
+                                                   ax=gf.next_row())
+
+    return gf
 
 
 def plot_factor_rank_auto_correlation(factor_data, gf=None):
@@ -418,4 +443,26 @@ def plot_factor_rank_auto_correlation(factor_data, gf=None):
     -------
     gf: utils.GridFigure
     """
+    turnover_periods = utils.get_forward_returns_columns(factor_data.columns)
 
+    autocorrelation = pd.concat(
+        [perf.factor_rank_autocorrelation(factor_data, period) for period in
+         turnover_periods], axis=1)
+
+    auto_corr = pd.DataFrame()
+    for period, p_data in autocorrelation.iteritems():
+        auto_corr.loc['Mean Factor Rank Autocorrelation',
+                      '{}'.format(period)] = p_data.mean()
+
+    utils.print_table(auto_corr.apply(lambda x: x.round(3)))
+
+    fr_cols = len(turnover_periods)
+    if gf is None:
+        gf = utils.GridFigure(rows=fr_cols, cols=1)
+
+    for period in autocorrelation.columns:
+        plotting.plot_factor_rank_auto_correlation(autocorrelation[period],
+                                                   period=period,
+                                                   ax=gf.next_row())
+
+    return gf

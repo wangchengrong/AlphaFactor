@@ -13,4 +13,6 @@ from .api import (
     plot_ic_ts,
     plot_ic_bar_by_group,
     plot_ic_heatmap,
+    plot_top_bottom_quantile_turnover,
+    plot_factor_rank_auto_correlation
 )
